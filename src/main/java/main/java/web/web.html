@@ -1,22 +1,20 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <style>
-        .hide { position:absolute; top:-1px; left:-1px; width:1px; height:1px; }
+        .hide {
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            width: 1px;
+            height: 1px;
+        }
     </style>
-    <!--    <link rel="stylesheet" href="style.css">-->
-
     <title>Bank App</title>
-
-
-    ​
-
-
 
 </head>
 
@@ -27,10 +25,23 @@
 <table style="width:100%">
     <tr>
         <th>
-
-            <form action="create" method="post">
+            <div>
                 <fieldset>
-
+                    <legend> Account Details</legend>
+                    <label for="name1">Enter your name : </label><br>
+                    <input type="text" id="name1" name="name" required><br>
+                    <label for="acc1">Enter your Account Number : </label><br>
+                    <input type="text" id="acc1" name="nic" required><br>
+                    <label for="nic1">Enter your NIC: </label><br>
+                    <input type="text" id="nic1" name="address" required><br>
+                    <button id="showAcc" value="accCreate">Show Account Details</button>
+                    <br>
+                </fieldset>
+            </div>
+        </th>
+        <th>
+            <div>
+                <fieldset>
                     <legend>Create New Account</legend>
                     <label for="name">Enter your name : </label><br>
                     <input type="text" id="name" name="name" required><br>
@@ -40,17 +51,15 @@
                     <input type="text" id="address" name="address" required><br>
                     <button id="accCreate" value="accCreate">Create Account</button>
                     <br>
-
                 </fieldset>
-            </form>
+            </div>
         </th>
         <th>
-
-            <form action="deposit" method="post" id="deposit">
+            <div>
                 <fieldset>
+                    <legend>Deposit Amount</legend>
                     <label for="name">Enter account name : </label><br>
                     <input type="text" id="name2" name="name" required><br>
-                    <legend>Deposit Amount</legend>
                     <label for="accNo">Enter your account number : </label> <br>
                     <input type="text" id="accNo" name="accNo"><br>
                     <label for="amt"> Enter deposit amount : </label><br>
@@ -58,10 +67,10 @@
                     <button id="depositBtn">Deposit</button>
                     <br>
                 </fieldset>
-            </form>
+            </div>
         </th>
         <th>
-            <form action="withdrawal" method="post">
+            <div>
                 <fieldset>
                     <legend>Amount Withdrawal</legend>
                     <label for="name">Enter account name : </label><br>
@@ -73,10 +82,10 @@
                     <button id="withdrawlBtn">Withdraw</button>
                     <br>
                 </fieldset>
-            </form>
+            </div>
         </th>
         <th>
-            <form action="transfer" method="post">
+            <div>
                 <fieldset>
                     <legend>Amount Transfer</legend>
                     <label for="accNo2">Enter your account number : </label><br>
@@ -88,11 +97,240 @@
                     <button id="Transfer">Transfer</button>
                     <br>
                 </fieldset>
-            </form>
+            </div>
         </th>
     </tr>
 </table>
+<script type="application/javascript">
 
+    var button = document.getElementById("Transfer");
+
+    button.addEventListener('click', Transfer);
+
+    function Transfer() {
+        var response;
+
+        var FromAccountNo = document.getElementById("accNo2").value;
+        var ToAccountNo = document.getElementById("accNo3").value;
+        var AmountTra = document.getElementById("amt2").value;
+
+        console.log("FromAccountNo " + FromAccountNo);
+        console.log("ToAccountNo " + ToAccountNo);
+        console.log("Amount " + AmountTra);
+
+
+        var request = new XMLHttpRequest();
+
+        request.open('POST', '/transfer', true);
+
+        request.setRequestHeader("Content-Type", "application/json");
+
+        request.onreadystatechange = function () {
+            if (this.status === 200) {
+                response = request.responseText;
+                console.log(response);
+                if(response.length > 0 ){
+                    alert(response);
+                }
+            }
+        };
+
+        var transfer = {
+            'FromAccountNo': FromAccountNo,
+            'ToAccountNo': ToAccountNo,
+            'Amount': AmountTra,
+        };
+
+
+        console.log(JSON.stringify(transfer));
+        request.send(JSON.stringify(transfer));
+    }
+</script>
+<script type="application/javascript">
+
+    var button = document.getElementById("withdrawlBtn");
+
+    button.addEventListener('click', withdrawal);
+
+    function withdrawal() {
+        var response;
+
+        var accountName1 = document.getElementById("name3").value;
+        var AccountNo1 = document.getElementById("accNo1").value;
+        var Amount1 = document.getElementById("amt1").value;
+
+        console.log("accountName " + accountName1);
+        console.log("AccountNo " + AccountNo1);
+        console.log("Amount " + Amount1);
+
+
+        var request = new XMLHttpRequest();
+
+        request.open('POST', '/withdrawal', true);
+
+        request.setRequestHeader("Content-Type", "application/json");
+
+        request.onreadystatechange = function () {
+            if (this.status === 200) {
+                response = request.responseText;
+                console.log(response);
+                if(response.length > 0 ){
+                    alert(response);
+                }
+
+            }
+        };
+
+        var withdraw = {
+            'accountName': accountName1,
+            'NIC': AccountNo1,
+            'address': Amount1,
+        };
+
+
+        console.log(JSON.stringify(withdraw));
+        request.send(JSON.stringify(withdraw));
+    }
+</script>
+<script type="application/javascript">
+
+    var button = document.getElementById("depositBtn");
+
+    button.addEventListener('click', deposit);
+
+    function deposit() {
+        var response;
+
+        var accountName2 = document.getElementById("name2").value;
+        var AccountNo2 = document.getElementById("accNo").value;
+        var Amount2 = document.getElementById("amt").value;
+
+        console.log("accountName " + accountName2);
+        console.log("AccountNo " + AccountNo2);
+        console.log("Amount " + Amount2);
+
+
+        var request = new XMLHttpRequest();
+
+        request.open('POST', '/deposit', true);
+
+        request.setRequestHeader("Content-Type", "application/json");
+
+        request.onreadystatechange = function () {
+            if (this.status === 200) {
+                response = request.responseText;
+                console.log(response);
+                if(response.length > 0 ){
+                    alert(response);
+                }
+
+            }
+        };
+
+        var deposit = {
+            'accountName': accountName2,
+            'NIC': AccountNo2,
+            'address': Amount2,
+        };
+
+
+        console.log(JSON.stringify(deposit));
+        request.send(JSON.stringify(deposit));
+    }
+</script>
+<script type="application/javascript">
+
+    var button = document.getElementById("accCreate");
+
+    button.addEventListener('click', accCreate);
+
+    function accCreate() {
+        var response;
+
+        var accountName = document.getElementById("name").value;
+        var NIC = document.getElementById("nic").value;
+        var Address = document.getElementById("address").value;
+
+        console.log("accountName " + accountName);
+        console.log("NIC " + NIC);
+        console.log("Address " + Address);
+
+
+        var request = new XMLHttpRequest();
+
+        request.open('POST', '/create', true);
+
+        request.setRequestHeader("Content-Type", "application/json");
+
+        request.onreadystatechange = function () {
+            if (this.status === 200) {
+                response = request.responseText;
+                console.log(response);
+                if(response.length > 0 ){
+                    alert(response);
+                }
+
+            }
+        };
+
+        var create = {
+            'accountName': accountName,
+            'NIC': NIC,
+            'address': Address,
+        };
+
+
+        console.log(JSON.stringify(create));
+        request.send(JSON.stringify(create));
+    }
+</script>
+<script type="application/javascript">
+
+    var button = document.getElementById("showAcc");
+
+    button.addEventListener('click', showAcc);
+
+    function showAcc() {
+        var response;
+
+        var accountName = document.getElementById("name1").value;
+        var accountNumber = document.getElementById("acc1").value;
+        var nIc = document.getElementById("nic1").value;
+
+        console.log("accountName " + accountName);
+        console.log("accountNumber " + accountNumber);
+        console.log("NIC " + nIc);
+
+
+        var request = new XMLHttpRequest();
+
+        request.open('POST', '/show', true);
+
+        request.setRequestHeader("Content-Type", "application/json");
+
+        request.onreadystatechange = function () {
+            if (this.status === 200) {
+                response = request.responseText;
+                console.log(response);
+                if(response.length > 0 ){
+                    alert(response);
+                }
+
+            }
+        };
+
+        var details = {
+            'accountName': accountName,
+            'accountNumber': accountNumber,
+            'NIC': nIc
+        };
+
+
+        console.log(JSON.stringify(details));
+        request.send(JSON.stringify(details));
+
+    }
+</script>
 </body>
 
 

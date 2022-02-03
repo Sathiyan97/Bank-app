@@ -1,14 +1,11 @@
 package main.java;
 
 import java.io.*;
-import java.math.BigDecimal;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.sql.*;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -19,154 +16,173 @@ import java.util.Map;
  */
 class HttpMirror {
 
-    Bank banks = new Bank();
 
-    public static void main(String[] args) {
-
-        HttpMirror obj = new HttpMirror();
-        Account acc = new Account();
-        try {
-
-            ServerSocket ss = new ServerSocket(8000);
-            // Now enter an infinite loop, waiting for & handling connections.
-            while (true) {
-
-                Socket client = ss.accept();
-
-                // Get input and output streams to talk to the client
-                BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-                PrintWriter out = new PrintWriter(client.getOutputStream());
-                OutputStream output = client.getOutputStream();
-
-                List<String> list = new ArrayList<>();
-
-                String line = in.readLine();
-                while (line.length() > 0) {
-                    System.out.println(line);
-                    list.add(line);
-                    line = in.readLine();
-                }
-
-
-                String requestLineStr = list.get(0);
-                String[] requestLineArr = requestLineStr.split(" ");
-                String method = requestLineArr[0];
-                String URI = requestLineArr[1];
-                String status = requestLineArr[2];
-
-//                System.out.println("URI = " + URI);
-
-                List<String> headerList = list.subList(1, list.size() - 1);
-
-                Map<String, String> headersMap = new HashMap<>();
-
-                for (int i = 0; i < headerList.size(); i++) {
-                    String line1 = headerList.get(i);
-                    String[] arr = line1.split(" ");
-                    headersMap.put(arr[0], arr[1]);
-                }
-
-//                System.out.println(Collections.singletonList(headersMap)); // method 1
-//                System.out.println(Collections.singletonList(headersMap));
-
-
-                if (method.equals("GET")) {
-//                    System.out.println("Hello GET");
-                    out.println("HTTP/1.0 200 OK");
-                    out.println("Content-Type: text/html");
-                    out.println("");
-//
-                    StringBuilder webHtml = new StringBuilder();
-                    FileReader fileReader = new FileReader("/Users/sathiyan/Documents/Bank app using HTTP/src/main/java/main/java/web/web.html");
-                    BufferedReader bufferReader = new BufferedReader(fileReader);
-                    String val;
-                    while ((val = bufferReader.readLine()) != null) {
-                        webHtml.append(val);
-                    }
-                    String result = webHtml.toString();
-//                    out.print(webHtml);
-                    out.write(result);
-//                    out.write("\r\n\r\n");
-
-                } else if (method.equals("POST")) {
-//                    System.out.println("Hello POST");
-                    out.println("HTTP/1.0 200 OK");
-                    out.println("Content-Type: text/html");
-                    out.println("");
-
-                    String contentLength = headersMap.get("Content-Length:");
-
-                    char[] data = new char[Integer.parseInt(contentLength)];
-                    in.read(data);
-                    String content = new String(data);
-                    System.out.println("content = " + content);
-
-
-                    String[] contentData = content.split("&");
-                    String[] data1 = contentData[0].split("=");
-                    String[] data2 = contentData[1].split("=");
-                    String[] data3 = contentData[2].split("=");
-                    String alloutput;
-//                    System.out.println("URI = " + URI.trim());
-
-
-                    switch (URI) {
-                        case "/create":
-                            obj.connect(data1[1], data2[1], data3[1]);
-//                            alloutput = obj.accountCreate(data1[1], data2[1], data3[1]);
-//                            out.write(alloutput);
-                            break;
-                        case "/deposit":
-                            int accNum = Integer.parseInt(data2[1]);
-                            double amount = Double.parseDouble(data3[1]);
-                            obj.AmountDepo(accNum, amount);
-//                            alloutput = obj.makeDeposit(accNum, amount);
-//                            out.write(alloutput);
-                            break;
-
-                        case "/withdrawal":
-                            int accNum1 = Integer.parseInt(data2[1]);
-                            double amount1 = Double.parseDouble(data3[1]);
-                            obj.AmountWith(accNum1, amount1);
-//                            alloutput = obj.makeWithdrawal(accNum1, amount1);
-//                            out.write(alloutput);
-                            break;
-                        case "/transfer":
-                            int fromAccNum = Integer.parseInt(data1[1]);
-                            int toAccNum = Integer.parseInt(data2[1]);
-                            double amount2 = Double.parseDouble(data3[1]);
-                            obj.AmountTransfer(fromAccNum,toAccNum,amount2);
-//                            alloutput = obj.makeTransfer(fromAccNum, toAccNum, amount2);
-//                            out.write(alloutput);
-                            break;
-
-
-                    }
-
-
-                }
-
-//                out.flush();
-                out.close();
-                in.close();
-                client.close();
-            }
-        }
-        // If anything goes wrong, print an error message
-        catch (Exception e) {
-            System.err.println();
-            System.err.println("Usage: java HttpMirror <port>");
-        }
-    }
-
+    int accNum5;
     String name;
     String nic;
     String address;
+    int accNum;
+    double amt;
+    int accNum1;
+    double amt1;
+    int fromaccNum;
+    int toaccNum;
+    double amt2;
 
-    public void connect(String name, String nic, String address) {
-        this.name = name;
-        this.nic = nic;
-        this.address = address;
+    public static void main(String[] args) throws IOException {
+
+        HttpMirror obj = new HttpMirror();
+        final String indexFilePath = "/Users/sathiyan/Documents/Bank-app/src/main/java/main/java/web/web.html";
+
+
+        ServerSocket serverSocket = new ServerSocket(8000);
+
+
+        while (true) {
+            final Socket socket = serverSocket.accept();
+
+
+            new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+
+                        while (!socket.isClosed()) {
+
+
+                            try {
+
+                                String urlPathAndMethod = reader.readLine();
+
+                                String[] pathArgs = urlPathAndMethod.split(" ");
+
+                                String method = pathArgs[0];
+                                String path = pathArgs[1];
+
+                                Map<String, String> headers = new HashMap<>();
+
+                                boolean headersDone = false;
+                                while (!headersDone) {
+                                    String headerEntry = reader.readLine();
+
+                                    if (headerEntry.equals("")) {
+                                        headersDone = true;
+                                    } else {
+                                        String[] headerArgs = headerEntry.split(":");
+
+                                        headers.put(headerArgs[0].trim(), headerArgs[1].trim());
+
+                                    }
+                                }
+//                                System.out.println("headers = " + headers);
+                                if (method.equals("GET")) {
+                                    String indexContent = doGetIndexHtml();
+                                    writeResponse(writer, "text/html", indexContent);
+
+                                } else if (method.equals("POST")) {
+                                    String postContent = readPostContent(reader, headers);
+                                    System.out.println("postContent = " + postContent);
+
+                                    String[] Data = postContent.split(",");
+                                    String[] data1 = Data[0].split("\"");
+                                    String[] data2 = Data[1].split("\"");
+                                    String[] data3 = Data[2].split("\"");
+
+//                                    System.out.println("data1 = " + data1[3]);
+//                                    System.out.println("data2 = " + data2[3]);
+//                                    System.out.println("data3 = " + data3[3]);
+                                    System.out.println("URI : " + path);
+                                    switch (path) {
+                                        case "/show":
+                                            String str = obj.AccDetails(Integer.parseInt(data2[3]));
+                                            writeResponse(writer, "application/json", str);
+                                            break;
+                                        case "/create":
+                                            String str1 = obj.CreateAcc(data1[3], data2[3], data3[3]);
+                                            writeResponse(writer, "application/json", str1);
+
+                                            break;
+                                        case "/deposit":
+                                            int accNum = Integer.parseInt(data2[3]);
+                                            double amount = Double.parseDouble(data3[3]);
+                                            String str2 = obj.AmountDepo(accNum, amount);
+                                            writeResponse(writer, "application/json", str2);
+                                            break;
+                                        case "/withdrawal":
+                                            int accNum1 = Integer.parseInt(data2[3]);
+                                            double amount1 = Double.parseDouble(data3[3]);
+                                            String str3 = obj.AmountWith(accNum1, amount1);
+                                            writeResponse(writer, "application/json", str3);
+                                            break;
+
+                                        case "/transfer":
+                                            int fromAccNum = Integer.parseInt(data1[3]);
+                                            int toAccNum = Integer.parseInt(data2[3]);
+                                            double amount2 = Double.parseDouble(data3[3]);
+                                            String str4 = obj.AmountTransfer(fromAccNum, toAccNum, amount2);
+                                            writeResponse(writer, "application/json", str4);
+                                            break;
+
+                                        default:
+                                            System.out.println("terminate");
+                                            break;
+                                    }
+                                }
+                                writer.close();
+                                reader.close();
+                                socket.close();
+
+                            } catch (Exception e) {
+                                e.printStackTrace();
+
+                                socket.close();
+                            }
+                        }
+
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                private void writeResponse(BufferedWriter writer, String contentType, String contentBody) throws IOException {
+
+                    writer.write("HTTP/1.1 200 OK\r\n");
+                    writer.write("Content-Type: " + contentType + "\r\n");
+//                    System.out.println("indexContent = " + contentBody);
+                    writer.write("Content-Length: " + contentBody.length() + "\r\n");
+                    writer.write("\r\n");
+                    writer.write(contentBody);
+                }
+
+                private String readPostContent(BufferedReader reader, Map<String, String> headers) throws IOException {
+                    if (headers.containsKey("Content-Length")) {
+                        String contentLength = headers.get("Content-Length");
+                        char[] cbuf = new char[Integer.parseInt(contentLength)];
+                        reader.read(cbuf);
+                        return new String(cbuf);
+                    } else {
+                        return "";
+                    }
+                }
+
+                private String doGetIndexHtml() throws IOException {
+                    File file = new File(indexFilePath);
+                    return new String(Files.readAllBytes(file.toPath()));
+                }
+
+            }.start();
+
+        }
+
+    }
+
+
+    public String AccDetails(int acc) {
+        String details = null;
+        this.accNum5 = acc;
 
         try {
 
@@ -174,7 +190,48 @@ class HttpMirror {
             String password = "0000";
             String url = "jdbc:postgresql://localhost:8001/sampleDB";
             Connection conn = DriverManager.getConnection(url, user, password);
-            System.out.println("Connected to the PostgreSQL server successfully.");
+
+            String getAmt = "select *\n" +
+                    "from \"bank\".customers\n" +
+                    "where  \"AccountNo\"= ?;";
+            PreparedStatement preparedStmt1 = conn.prepareStatement(getAmt);
+            preparedStmt1.setInt(1, accNum5);
+            ResultSet rs = preparedStmt1.executeQuery();
+
+            if (rs.next()) {
+                System.out.println("Name : " + rs.getString(1));
+                System.out.println("NIC : " + rs.getString(2));
+                System.out.println("Address :" + rs.getString(3));
+                System.out.println("AccNo :" + rs.getString(4));
+                System.out.println("Amount :" + rs.getString(5));
+
+                details = "Account Name : " + rs.getString(1) + "\r\n NIC Number : " + rs.getString(2) + "\r\n Address : " + rs.getString(3) +
+                        "\r\n Account Number : " + rs.getString(4) + "\r\n Balance : " + rs.getString(5);
+            } else {
+                details = "No such user id is already registered";
+            }
+
+
+            conn.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return details;
+    }
+
+    public String CreateAcc(String name, String nic, String address) {
+        this.name = name;
+        this.nic = nic;
+        this.address = address;
+        String AccCreated = null;
+
+        try {
+
+            String user = "postgres";
+            String password = "0000";
+            String url = "jdbc:postgresql://localhost:8001/sampleDB";
+            Connection conn = DriverManager.getConnection(url, user, password);
+//            System.out.println("Connected to the PostgreSQL server successfully.");
 
 
             Statement stmt = conn.createStatement();
@@ -189,27 +246,36 @@ class HttpMirror {
             preparedStmt.setString(2, nic);
             preparedStmt.setString(3, address);
 
+            String getAmt = "select *\n" +
+                    "from \"bank\".customers\n" +
+                    "where  \"Name\"= ?;";
+            PreparedStatement preparedStmt1 = conn.prepareStatement(getAmt);
+            preparedStmt1.setString(1, name);
+            ResultSet rs = preparedStmt1.executeQuery();
 
-            boolean x = preparedStmt.execute();
+            if (rs.next()) {
+                System.out.println("Name : " + rs.getString(1));
+                System.out.println("NIC : " + rs.getString(2));
+                System.out.println("Address :" + rs.getString(3));
+                System.out.println("AccNo :" + rs.getString(4));
+                System.out.println("Amount :" + rs.getString(5));
 
-            if (!x) {
-                System.out.println("Successfully Inserted");
+                AccCreated = "Account Name : " + rs.getString(1) + "\r\n NIC Number : " + rs.getString(2) + "\r\n Address : " + rs.getString(3) +
+                        "\r\n Account Number : " + rs.getString(4) + "\r\n Balance : " + rs.getString(5);
             } else {
-                System.out.println("Insert Failed");
+                AccCreated = "No such user id is already registered";
             }
-
 
             conn.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return AccCreated;
 
     }
 
-    int accNum;
-    double amt;
-
-    public void AmountDepo(int acc, double amt1) {
+    public String AmountDepo(int acc, double amt1) {
+        String Depo = null;
         double newAmt = 0;
         this.accNum = acc;
         this.amt = amt1;
@@ -246,16 +312,36 @@ class HttpMirror {
             // execute the java preparedstatement
             preparedStmt.executeUpdate();
 
+            String getAmt1 = "select *\n" +
+                    "from \"bank\".customers\n" +
+                    "where  \"AccountNo\"= ?;";
+            PreparedStatement preparedStmt11 = conn.prepareStatement(getAmt1);
+            preparedStmt11.setInt(1, accNum);
+            ResultSet rs1 = preparedStmt11.executeQuery();
+
+            if (rs1.next()) {
+                System.out.println("Name : " + rs1.getString(1));
+                System.out.println("NIC : " + rs1.getString(2));
+                System.out.println("Address :" + rs1.getString(3));
+                System.out.println("AccNo :" + rs1.getString(4));
+                System.out.println("Amount :" + rs1.getString(5));
+
+                Depo = "Account Name : " + rs1.getString(1) + "\r\n NIC Number : " + rs1.getString(2) + "\r\n Address : " + rs1.getString(3) +
+                        "\r\n Account Number : " + rs1.getString(4) + "\r\n Balance : " + rs1.getString(5);
+            } else {
+                Depo = "No such user id is already registered";
+            }
+
+
             conn.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return Depo;
     }
 
-    int accNum1;
-    double amt1;
-
-    public void AmountWith(int acc, double amt1) {
+    public String AmountWith(int acc, double amt1) {
+        String Withdraw = null;
         double newAmt = 0;
         this.accNum1 = acc;
         this.amt1 = amt1;
@@ -277,32 +363,49 @@ class HttpMirror {
             if (rs.next()) {
 
                 newAmt = rs.getDouble(1);
-//                System.out.println(newAmt);
+
             }
 
 
-            // create the java mysql update preparedstatement
             String query = "UPDATE bank.customers\n" +
                     "\tSET  \"Amount\"=?\n" +
                     "\tWHERE \"AccountNo\" = ?;";
             PreparedStatement preparedStmt = conn.prepareStatement(query);
             preparedStmt.setDouble(1, (newAmt - amt1));
             preparedStmt.setInt(2, accNum1);
-
-            // execute the java preparedstatement
             preparedStmt.executeUpdate();
+
+
+            String getAmt1 = "select *\n" +
+                    "from \"bank\".customers\n" +
+                    "where  \"AccountNo\"= ?;";
+            PreparedStatement preparedStmt11 = conn.prepareStatement(getAmt1);
+            preparedStmt11.setInt(1, accNum1);
+            ResultSet rs1 = preparedStmt11.executeQuery();
+
+            if (rs1.next()) {
+                System.out.println("Name : " + rs1.getString(1));
+                System.out.println("NIC : " + rs1.getString(2));
+                System.out.println("Address :" + rs1.getString(3));
+                System.out.println("AccNo :" + rs1.getString(4));
+                System.out.println("Amount :" + rs1.getString(5));
+
+                Withdraw = "Account Name : " + rs1.getString(1) + "\r\n NIC Number : " + rs1.getString(2) + "\r\n Address : " + rs1.getString(3) +
+                        "\r\n Account Number : " + rs1.getString(4) + "\r\n Balance : " + rs1.getString(5);
+            } else {
+                Withdraw = "No such user id is already registered";
+            }
 
             conn.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return  Withdraw;
     }
 
-    int fromaccNum;
-    int toaccNum;
-    double amt2;
-
-    public void AmountTransfer(int acc, int acc2, double amt1) {
+    public String AmountTransfer(int acc, int acc2, double amt1) {
+        String Transfer1 = null;
+        String Transfer2 = null;
         double newAmtto = 0;
         double newAmtfrom = 0;
         this.toaccNum = acc2;
@@ -327,11 +430,10 @@ class HttpMirror {
             if (rs.next()) {
 
                 newAmtfrom = rs.getDouble(1);
-//                System.out.println(newAmt);
+
             }
 
 
-            // create the java mysql update preparedstatement
             String query = "UPDATE bank.customers\n" +
                     "\tSET  \"Amount\"=?\n" +
                     "\tWHERE \"AccountNo\" = ?;";
@@ -339,9 +441,8 @@ class HttpMirror {
             preparedStmt.setDouble(1, (newAmtfrom - amt2));
             preparedStmt.setInt(2, fromaccNum);
 
-            // execute the java preparedstatement
-            preparedStmt.executeUpdate();
 
+            preparedStmt.executeUpdate();
 
 
             String getAmt1 = "select \"Amount\"\n" +
@@ -355,96 +456,55 @@ class HttpMirror {
             if (rs1.next()) {
 
                 newAmtto = rs1.getDouble(1);
-//                System.out.println(newAmt);
+
             }
 
 
-            // create the java mysql update preparedstatement
             String query1 = "UPDATE bank.customers\n" +
                     "\tSET  \"Amount\"=?\n" +
                     "\tWHERE \"AccountNo\" = ?;";
             PreparedStatement preparedStmt3 = conn.prepareStatement(query1);
             preparedStmt3.setDouble(1, (newAmtto + amt2));
             preparedStmt3.setInt(2, toaccNum);
-
-            // execute the java preparedstatement
             preparedStmt3.executeUpdate();
+
+            String getAmt2 = "select *\n" +
+                    "from \"bank\".customers\n" +
+                    "where  \"AccountNo\"= ?;";
+            PreparedStatement preparedStmt11 = conn.prepareStatement(getAmt2);
+            preparedStmt11.setInt(1, fromaccNum);
+            ResultSet rs11 = preparedStmt11.executeQuery();
+            if (rs11.next()) {
+
+                Transfer1 = "Account Name : " + rs11.getString(1) + "\r\n NIC Number : " + rs11.getString(2) + "\r\n Address : " + rs11.getString(3) +
+                        "\r\n Account Number : " + rs11.getString(4) + "\r\n Balance : " + rs11.getString(5)
+                        + "\r\n \r\n" ;
+            }
+
+            String getAmt3 = "select *\n" +
+                    "from \"bank\".customers\n" +
+                    "where  \"AccountNo\"= ?;";
+            PreparedStatement preparedStmt111 = conn.prepareStatement(getAmt3);
+            preparedStmt111.setInt(1, toaccNum);
+            ResultSet rs111 = preparedStmt111.executeQuery();
+
+            if (rs111.next()) {
+
+
+                Transfer2 = " \r\n" + "Account Name : " + rs111.getString(1) + "\r\n NIC Number : " + rs111.getString(2) + "\r\n Address : " + rs111.getString(3) +
+                        "\r\n Account Number : " + rs111.getString(4) + "\r\n Balance : " + rs111.getString(5) ;
+            }
+
+
+
 
             conn.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return  Transfer1 + Transfer2;
     }
 
 
-    public String accountCreate(String name, String nic, String address) {
-        Account accountNo = new Account();
-        Customer customs = new Customer(name, nic, address, accountNo);
-
-        banks.addCustomer(customs);
-        return customs.toString();
-    }
-
-    public String makeDeposit(int accountNo, double amount) {
-
-        if (banks.getCustomerIndex(accountNo) < 0) {
-            return "Invalid account number";
-        } else {
-            boolean b = banks.getCustomer(accountNo).getAccountNo().depositt(amount);
-            if (b) {
-                Transaction t = new Transaction();
-                LocalDateTime myDateObj = LocalDateTime.now();
-                Transaction t1 = new Transaction(t.getTransactionid(), accountNo, "Deposit", amount, myDateObj);
-                banks.addTransaction(t1);
-                return "Account No : " + banks.getCustomer(accountNo).getAccountNo().toString();
-            }
-            return "You can not deposit negative values";
-
-        }
-
-
-    }
-
-    public String makeWithdrawal(int accountNo, double amount) {
-        if (banks.getCustomerIndex(accountNo) < 0) {
-            return "Invalid account number";
-        } else {
-            boolean b = banks.getCustomer(accountNo).getAccountNo().withdraw(amount);
-            if (b) {
-                Transaction t = new Transaction();
-                LocalDateTime myDateObj = LocalDateTime.now();
-                Transaction t1 = new Transaction(t.getTransactionid(), accountNo, "Deposit", amount, myDateObj);
-                banks.addTransaction(t1);
-                return "Account No : " + banks.getCustomer(accountNo).getAccountNo().toString();
-            }
-            return "Insufficient Balance";
-
-        }
-    }
-
-    public String makeTransfer(int fromAcc, int toAcc, double amount) {
-        if (banks.getCustomerIndex(fromAcc) < 0 || banks.getCustomerIndex(toAcc) < 0) {
-            return "Invalid account Number";
-        } else {
-            BigDecimal d1 = banks.getCustomer(fromAcc).getAccountNo().getBalance();
-            BigDecimal d2 = BigDecimal.valueOf(amount);
-            //double d = bank.getCustomer(fromAccountNo).getAccountNo().getBalance();
-            BigDecimal d3 = d1.max(d2);
-            if (d3.equals(d2)) {
-                return "insufficient balance";
-            } else {
-                Transaction t = new Transaction();
-                LocalDateTime myDateObj = LocalDateTime.now();
-                Transaction t1 = new Transaction(t.getTransactionid(), fromAcc, "Transfer-Debit", amount, myDateObj);
-                banks.addTransaction(t1);
-                banks.getCustomer(fromAcc).getAccountNo().withdraw(amount);
-                Transaction t2 = new Transaction(t.getTransactionid(), toAcc, "Transfer-Credit", amount, myDateObj);
-                banks.addTransaction(t2);
-                banks.getCustomer(toAcc).getAccountNo().depositt(amount);
-
-            }
-            return "From Account No : " + banks.getCustomer(fromAcc).getAccountNo().toString() + "\nTo Account No : " + banks.getCustomer(toAcc).getAccountNo().toString();
-        }
-    }
 
 }
